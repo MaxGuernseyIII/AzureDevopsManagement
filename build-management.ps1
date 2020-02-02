@@ -5,7 +5,7 @@ enum BuildQueueStatus {
 }
 
 function GetSystemToken {
-  $PAT = ":$env:SYSTEM_PAT"
+  $PAT = ":$env:SYSTEM_ACCESSTOKEN"
   $Bytes  = [System.Text.Encoding]::ASCII.GetBytes($PAT)
   return [System.Convert]::ToBase64String($Bytes)
 }

@@ -67,6 +67,5 @@ function Set-AzureDevOpsPipelineQueueStatus {
 
   $Pipeline = Invoke-RestMethod -Uri $Url -Method Get -Headers $Headers
   $Pipeline.queueStatus = "$NewStatus"
-
   Invoke-RestMethod -Uri $Url -Method Put -Body ($Pipeline | ConvertTo-Json) -Headers $Headers
 }

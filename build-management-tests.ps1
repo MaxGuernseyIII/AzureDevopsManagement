@@ -6,7 +6,7 @@ class MockRestClient : RestClient {
   hidden [hashtable]$ExpectedCalls = @{}
   hidden [string[]]$ActualCalls = @()
 
-  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
+  [object]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
     $this.ActualCalls = $this.ActualCalls + @($Key)
@@ -33,7 +33,7 @@ $ExpectedCallsJson")
     }
   }
 
-  [void]GivenResponseWillBe([string]$Uri, [string]$Method, [string]$Token, [string]$Body, [hashtable]$ResponseBody) {
+  [void]GivenResponseWillBe([string]$Uri, [string]$Method, [string]$Token, [string]$Body, [object]$ResponseBody) {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
     $this.ExpectedCalls[$Key] = $ResponseBody

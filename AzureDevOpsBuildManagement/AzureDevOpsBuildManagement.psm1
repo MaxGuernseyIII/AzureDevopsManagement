@@ -9,13 +9,13 @@ class RestClient {
     return [RestClient]::Instance
   }
 
-  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
+  [object]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     throw("abstract method")
   }
 }
 
 class HttpRestClient : RestClient {
-  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
+  [object]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     $Headers = @{
       'Authorization' = "Basic $Token";
       'Content-Type' = "application/json"

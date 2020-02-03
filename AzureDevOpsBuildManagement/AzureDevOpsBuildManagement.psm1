@@ -1,12 +1,11 @@
+using namespace Microsoft.PowerShell.Commands
+
 enum BuildQueueStatus {
   disabled
   enabled
   paused
 }
 
-enum BuildStatus {
-
-}
 
 class RestClient {
   hidden static [RestClient] $Instance
@@ -24,7 +23,7 @@ class RestClient {
   }
 }
 
-class HttpRestClient {
+class HttpRestClient : RestClient {
   [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body = $null) {
     $Headers = @{
       'Authorization' = "Basic $Token";
@@ -45,7 +44,7 @@ function AzureDevOpsRestCall {
     [string]$Uri,
     [WebRequestMethod]$Method,
     [string]$Token,
-    [Parameter(Mandatory=$false)][hashtable]$Body = $null
+    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][hashtable]$Body = $null
   )
 
   [RestClient]::GetInstance().Invoke($Uri, $Method, $Token, $Body)
@@ -69,6 +68,8 @@ function Get-AzureDevOpsBuilds {
   }
   $Builds = AzureDevOpsRestCall -Uri $Url -Method Get -Token $Token
 
+  Write-Host 'Hi!' $Builds
+
   $Builds.value | ForEach-Object { "$($_._links.self.href)?api-version=5.1" }
 }
 
@@ -89,7 +90,7 @@ function Set-AzureDevOpsPipelineQueueStatus {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory)][string]$DefinitionId,
-    [Parameter(Mandatory)][BuildQueueStatus]$NewStatus
+    [Parameter(Mandatory)][ValidateSet('enabled','disabled','paused')][string]$NewStatus
   )
 
   $Token = GetSystemToken

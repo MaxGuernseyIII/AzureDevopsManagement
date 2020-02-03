@@ -6,7 +6,7 @@ class MockRestClient : RestClient {
   hidden [hashtable]$ExpectedCalls = @{}
   hidden [string[]]$ActualCalls = @()
 
-  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body = '') {
+  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
     $this.ActualCalls = $this.ActualCalls + @($Key)
@@ -33,7 +33,7 @@ $ExpectedCallsJson")
     }
   }
 
-  [void]GivenResponseWillBe([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body, [hashtable]$ResponseBody) {
+  [void]GivenResponseWillBe([string]$Uri, [string]$Method, [string]$Token, [string]$Body, [hashtable]$ResponseBody) {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
     $this.ExpectedCalls[$Key] = $ResponseBody
@@ -44,11 +44,11 @@ $ExpectedCallsJson")
   }
 
 
-  [void]ShouldHaveCalled([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body) {
+  [void]ShouldHaveCalled([string]$Uri, [string]$Method, [string]$Token, [string]$Body) {
     $this.ActualCalls | Should -Contain $this.ArgsToKey($Uri, $Method, $Token, $Body)
   }
 
-  hidden [object]ArgsToKey([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body) {
+  hidden [object]ArgsToKey([string]$Uri, [string]$Method, [string]$Token, [string]$Body) {
     return @{
       Uri = $Uri
       Method = $Method
@@ -175,3 +175,5 @@ Describe "Build Management" {
     $MockRestClient.ShouldHaveCalled($Url, 'Put', $Token, ($NewDefinition | ConvertTo-Json))
   }
 }
+
+Invoke-Pester

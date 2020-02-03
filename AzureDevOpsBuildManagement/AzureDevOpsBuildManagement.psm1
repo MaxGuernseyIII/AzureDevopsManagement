@@ -1,12 +1,3 @@
-using namespace Microsoft.PowerShell.Commands
-
-enum BuildQueueStatus {
-  disabled
-  enabled
-  paused
-}
-
-
 class RestClient {
   hidden static [RestClient] $Instance
 
@@ -18,13 +9,13 @@ class RestClient {
     return [RestClient]::Instance
   }
 
-  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body = '') {
+  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     throw("abstract method")
   }
 }
 
 class HttpRestClient : RestClient {
-  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body = '') {
+  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     $Headers = @{
       'Authorization' = "Basic $Token";
       'Content-Type' = "application/json"
@@ -42,7 +33,7 @@ function GetSystemToken {
 function AzureDevOpsRestCall {
   param(
     [string]$Uri,
-    [WebRequestMethod]$Method,
+    [string]$Method,
     [string]$Token,
     [Parameter(Mandatory=$false)][string]$Body = $null
   )

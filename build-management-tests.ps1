@@ -6,7 +6,7 @@ class MockRestClient : RestClient {
   hidden [hashtable]$ExpectedCalls = @{}
   hidden [string[]]$ActualCalls = @()
 
-  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = $null) {
+  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
     $this.ActualCalls = $this.ActualCalls + @($Key)

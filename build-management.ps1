@@ -4,6 +4,36 @@ enum BuildQueueStatus {
   paused
 }
 
+enum BuildStatus {
+
+}
+
+class RestClient {
+  hidden static [RestClient] $Instance
+
+  static [RestClient]GetInstance() {
+    if ([RestClient]::Instance -eq $null) {
+      [RestClient]::Instance = [HttpRestClient]::new()
+    }
+
+    return [RestClient]::Instance
+  }
+
+  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body = $null) {
+    throw("abstract method")
+  }
+}
+
+class HttpRestClient {
+  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body = $null) {
+    $Headers = @{
+      'Authorization' = "Basic $Token";
+      'Content-Type' = "application/json"
+    }
+    return Invoke-RestMethod -Uri $Uri -Method $Method -Body $Body -Headers $Headers
+  }
+}
+
 function GetSystemToken {
   $PAT = ":$env:SYSTEM_ACCESSTOKEN"
   $Bytes  = [System.Text.Encoding]::ASCII.GetBytes($PAT)
@@ -26,10 +56,7 @@ function Get-AzureDevOpsBuilds {
   if ($StatusFilter -ne '') {
     $Url = "$Url&statusFilter=$StatusFilter"
   }
-  $Builds = Invoke-RestMethod -Uri $Url -Method Get -Headers @{
-    'Authorization' = "Basic $Token";
-    'Content-Type' = "application/json"
-  }
+  $Builds = [RestClient]::GetInstance().Invoke($Url, 'Get', $Token)
 
   $Builds.value | ForEach-Object { "$($_._links.self.href)?api-version=5.1" }
 }
@@ -43,10 +70,7 @@ function Remove-AzureDevOpsBuilds {
   $Token = GetSystemToken
 
   foreach ($BuildUrl in $BuildUrls) {
-    Invoke-RestMethod -Uri $BuildUrl -Method Delete -Headers @{
-      'Authorization' = "Basic $Token";
-      'Content-Type' = "application/json"
-    }
+    [RestClient]::GetInstance().Invoke($BuildUrl, 'Delete', $Token)
   }
 }
 
@@ -60,13 +84,9 @@ function Set-AzureDevOpsPipelineQueueStatus {
   $Token = GetSystemToken
   $Url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
 
-  $Headers = @{
-    'Authorization' = "Basic $Token";
-    'Content-Type' = "application/json"
-  }
+  $Client = [RestClient]::GetInstance()
 
-  $Pipeline = Invoke-RestMethod -Uri $Url -Method Get -Headers $Headers
-  Write-Host $Pipeline
+  $Pipeline = $Client.Invoke($Url, 'Get', $Token)
   $Pipeline.queueStatus = "$NewStatus"
-  Invoke-RestMethod -Uri $Url -Method Put -Body ($Pipeline | ConvertTo-Json) -Headers $Headers
+  $Client.Invoke($Url, 'Put', $Token, ($Pipeline | ConvertTo-Json))
 }

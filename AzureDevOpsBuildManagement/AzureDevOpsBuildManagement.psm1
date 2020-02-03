@@ -9,18 +9,23 @@ class RestClient {
     return [RestClient]::Instance
   }
 
-  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
+  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = $null) {
     throw("abstract method")
   }
 }
 
 class HttpRestClient : RestClient {
-  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
+  [hashtable]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = $null) {
     $Headers = @{
       'Authorization' = "Basic $Token";
       'Content-Type' = "application/json"
     }
-    return Invoke-RestMethod -Uri $Uri -Method $Method -Body $Body -Headers $Headers
+
+    if ($Body -ne $null) {
+      return Invoke-RestMethod -Uri $Uri -Method $Method -Body $Body -Headers $Headers
+    } else {
+      return Invoke-RestMethod -Uri $Uri -Method $Method -Headers $Headers
+    }
   }
 }
 
@@ -45,7 +50,7 @@ function Get-AzureDevOpsBuilds {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$false)][string[]]$DefinitionIds = @(),
-    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][string]$StatusFilter = ''
+    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][string]$StatusFilter = $null
   )
 
   $Token = GetSystemToken

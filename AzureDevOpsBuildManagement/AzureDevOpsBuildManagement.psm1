@@ -18,13 +18,13 @@ class RestClient {
     return [RestClient]::Instance
   }
 
-  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body = $null) {
+  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body = '') {
     throw("abstract method")
   }
 }
 
 class HttpRestClient : RestClient {
-  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body = $null) {
+  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body = '') {
     $Headers = @{
       'Authorization' = "Basic $Token";
       'Content-Type' = "application/json"
@@ -44,7 +44,7 @@ function AzureDevOpsRestCall {
     [string]$Uri,
     [WebRequestMethod]$Method,
     [string]$Token,
-    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][hashtable]$Body = $null
+    [Parameter(Mandatory=$false)][string]$Body = $null
   )
 
   [RestClient]::GetInstance().Invoke($Uri, $Method, $Token, $Body)
@@ -54,7 +54,7 @@ function Get-AzureDevOpsBuilds {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$false)][string[]]$DefinitionIds = @(),
-    [Parameter(Mandatory=$false)][string]$StatusFilter = ''
+    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][string]$StatusFilter = ''
   )
 
   $Token = GetSystemToken
@@ -67,8 +67,6 @@ function Get-AzureDevOpsBuilds {
     $Url = "$Url&statusFilter=$StatusFilter"
   }
   $Builds = AzureDevOpsRestCall -Uri $Url -Method Get -Token $Token
-
-  Write-Host 'Hi!' $Builds
 
   $Builds.value | ForEach-Object { "$($_._links.self.href)?api-version=5.1" }
 }

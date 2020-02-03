@@ -1,36 +1,54 @@
 using namespace Microsoft.PowerShell.Commands
 using module '.\AzureDevOpsBuildManagement\AzureDevOpsBuildManagement.psm1'
 
-Import-Module Pester
-
 class MockRestClient : RestClient {
-  [hashtable]$Calls = @{}
+  hidden [bool]$Permissive = $false
+  hidden [hashtable]$ExpectedCalls = @{}
+  hidden [string[]]$ActualCalls = @()
 
-  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body = $null) {
+  [hashtable]Invoke([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body = '') {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
-    if (-not $this.Calls.ContainsKey($Key)) {
-      $KeyJson = ConvertTo-Json $Key
-      $ExpectedCallsJson = ConvertTo-Json $this.Calls.Keys
+    $this.ActualCalls = $this.ActualCalls + @($Key)
+
+    $this.GuardCall($Key)
+
+    return $this.ExpectedCalls[$Key]
+  }
+
+  hidden [void] GuardCall([string]$Key) {
+    if ($this.Permissive) {
+      return
+    }
+
+    if (-not $this.ExpectedCalls.ContainsKey($Key)) {
+      $ExpectedCallsJson = ConvertTo-Json $this.ExpectedCalls.Keys
       throw (
 "Call not properly conditioned.
 Attempted:
-$KeyJson
+$Key
 
 Expected:
 $ExpectedCallsJson")
     }
-
-    return $this.Calls[$Key]
   }
 
-  [void]GivenResponseWillBe([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body, [hashtable]$ResponseBody) {
+  [void]GivenResponseWillBe([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body, [hashtable]$ResponseBody) {
     $Key = $this.ArgsToKey($Uri, $Method, $Token, $Body)
 
-    $this.Calls[$Key] = $ResponseBody
+    $this.ExpectedCalls[$Key] = $ResponseBody
   }
 
-  hidden [object]ArgsToKey([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [hashtable]$Body) {
+  [void]IsPermissive() {
+    $this.Permissive = $true
+  }
+
+
+  [void]ShouldHaveCalled([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body) {
+    $this.ActualCalls | Should -Contain $this.ArgsToKey($Uri, $Method, $Token, $Body)
+  }
+
+  hidden [object]ArgsToKey([string]$Uri, [WebRequestMethod]$Method, [string]$Token, [string]$Body) {
     return @{
       Uri = $Uri
       Method = $Method
@@ -128,7 +146,32 @@ Describe "Build Management" {
     $Actual | Should Be @('l?api-version=5.1')
   }
 
-  It "can change "
-}
+  It "can delete builds" {
+    $MockRestClient.IsPermissive()
+    [string[]]$Urls = @(AnyString + '/1', AnyString + '/2')
 
-Invoke-Pester
+    $Urls | Remove-AzureDevOpsBuilds
+
+    foreach ($Url in $Urls) {
+      $MockRestClient.ShouldHaveCalled($Url, 'Delete', $Token, $null)
+    }
+  }
+
+  It "can modify the state of a pipeline queue" {
+    $MockRestClient.IsPermissive()
+    [string]$DefinitionId = AnyString
+    $Url = "$($CollectionUri)$ProjectId/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
+    $InitialDefinition = @{
+      queueStatus = 'something noisy'
+      otherContent = 'anything else'
+    }
+    $MockRestClient.GivenResponseWillBe($Url, 'Get', $Token, $null, $InitialDefinition)
+
+    Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId -NewStatus 'paused'
+
+    $NewDefinition = $InitialDefinition
+    $NewDefinition.queueStatus ='paused'
+
+    $MockRestClient.ShouldHaveCalled($Url, 'Put', $Token, ($NewDefinition | ConvertTo-Json))
+  }
+}

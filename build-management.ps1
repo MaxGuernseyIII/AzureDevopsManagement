@@ -40,6 +40,17 @@ function GetSystemToken {
   return [System.Convert]::ToBase64String($Bytes)
 }
 
+function AzureDevOpsRestCall {
+  param(
+    [string]$Uri,
+    [WebRequestMethod]$Method,
+    [string]$Token,
+    [Parameter(Mandatory=$false)][hashtable]$Body = $null
+  )
+
+  [RestClient]::GetInstance().Invoke($Uri, $Method, $Token, $Body)
+}
+
 function Get-AzureDevOpsBuilds {
   [CmdletBinding()]
   param (
@@ -56,7 +67,7 @@ function Get-AzureDevOpsBuilds {
   if ($StatusFilter -ne '') {
     $Url = "$Url&statusFilter=$StatusFilter"
   }
-  $Builds = [RestClient]::GetInstance().Invoke($Url, 'Get', $Token)
+  $Builds = AzureDevOpsRestCall -Uri $Url -Method Get -Token $Token
 
   $Builds.value | ForEach-Object { "$($_._links.self.href)?api-version=5.1" }
 }
@@ -70,7 +81,7 @@ function Remove-AzureDevOpsBuilds {
   $Token = GetSystemToken
 
   foreach ($BuildUrl in $BuildUrls) {
-    [RestClient]::GetInstance().Invoke($BuildUrl, 'Delete', $Token)
+    AzureDevOpsRestCall -Uri $BuildUrl -Method Delete -Token $Token
   }
 }
 
@@ -84,9 +95,12 @@ function Set-AzureDevOpsPipelineQueueStatus {
   $Token = GetSystemToken
   $Url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
 
-  $Client = [RestClient]::GetInstance()
+  $Pipeline = AzureDevOpsRestCall -Uri $Url -Method Get -Token $Token
 
-  $Pipeline = $Client.Invoke($Url, 'Get', $Token)
   $Pipeline.queueStatus = "$NewStatus"
-  $Client.Invoke($Url, 'Put', $Token, ($Pipeline | ConvertTo-Json))
+
+  AzureDevOpsRestCall -Uri $Url -Method Put -Token $Token -Body ($Pipeline | ConvertTo-Json)
 }
+
+Export-ModuleMember '*-*'
+Export-ModuleMember 'RestClient'

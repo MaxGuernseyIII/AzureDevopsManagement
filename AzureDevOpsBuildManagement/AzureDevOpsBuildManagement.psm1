@@ -70,14 +70,26 @@ function Get-AzureDevOpsBuilds {
 function Remove-AzureDevOpsBuilds {
   [CmdletBinding()]
   param(
-    [Parameter(ValueFromPipeline)][string[]]$BuildUrls
+    [Parameter(ValueFromPipeline)][string]$BuildUrl
   )
 
-  $Token = GetSystemToken
+  process {
+    $Token = GetSystemToken
 
-  foreach ($BuildUrl in $BuildUrls) {
     AzureDevOpsRestCall -Uri $BuildUrl -Method Delete -Token $Token
   }
+}
+
+function Remove-PendingAzureDevOpsBuildsInQueue {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][string]$DefinitionId
+  )
+
+  Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId 'enabled'
+  $ToDelete = Get-AzureDevOpsBuilds -DefinitionIds @($DefinitionId) -StatusFilter 'notStarted'
+  Get-AzureDevOpsBuilds -DefinitionIds @($DefinitionId) -StatusFilter 'notStarted' | Remove-AzureDevOpsBuilds
+  Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId 'paused'
 }
 
 function Set-AzureDevOpsPipelineQueueStatus {

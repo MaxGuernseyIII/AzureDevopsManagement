@@ -43,6 +43,9 @@ $ExpectedCallsJson")
     $this.Permissive = $true
   }
 
+  [void]IsRestrictive() {
+    $this.Permissive = $true
+  }
 
   [void]ShouldHaveCalled([string]$Uri, [string]$Method, [string]$Token, [string]$Body) {
     $this.ActualCalls | Should -Contain $this.ArgsToKey($Uri, $Method, $Token, $Body)
@@ -121,6 +124,13 @@ Describe "Build Management" {
     $MockRestClient.GivenResponseWillBe("$($CollectionUri)$ProjectId/_apis/build/builds?api-version=5.1$SearchString", 'Get', $Token, $null, @{value = $Value })
   }
 
+  function ThenServerDeletesHappened([string[]]$Urls) {
+    foreach ($Url in $Urls) {
+      $MockRestClient.ShouldHaveCalled($Url, 'Delete', $Token, $null)
+    }
+
+  }
+
   BeforeEach {
     $MockRestClient = [MockRestClient]::new()
     [RestClient]::Instance = $MockRestClient
@@ -169,9 +179,7 @@ Describe "Build Management" {
 
     $Urls | Remove-AzureDevOpsBuilds
 
-    foreach ($Url in $Urls) {
-      $MockRestClient.ShouldHaveCalled($Url, 'Delete', $Token, $null)
-    }
+    ThenServerDeletesHappened($Urls)
   }
 
   It "can modify the state of a pipeline queue" {
@@ -192,6 +200,27 @@ Describe "Build Management" {
     $MockRestClient.ShouldHaveCalled($Url, 'Put', $Token, ($NewDefinition | ConvertTo-Json))
   }
 
+  It "can eliminate unwanted builds" {
+    $Global:WasUnpaused = $false
+    $DefinitionId = 33
+    $Definitions = @($DefinitionId)
+
+    Mock Set-AzureDevOpsPipelineQueueStatus -ParameterFilter { $DefinitionId -eq $DefinitionId -and $NewStatus -eq 'enabled' } { 
+      $MockRestClient.IsRestrictive()
+      $Global:WasUnpaused = $true
+    }
+    Mock Set-AzureDevOpsPipelineQueueStatus -ParameterFilter { ($DefinitionId -eq 33) -and ($NewStatus -eq 'paused') } { 
+      $MockRestClient.IsPermissive()
+    }
+
+    GivenServerBuilds "&definitions=$Definitions&statusFilter=notStarted" @('a', 'b', 'c')
+    $BuildUrls = Get-AzureDevOpsBuilds -DefinitionIds $Definitions -StatusFilter 'notStarted'
+
+    Remove-PendingAzureDevOpsBuildsInQueue -DefinitionId $DefinitionId
+
+    $Global:WasUnpaused | Should Be $true
+    ThenServerDeletesHappened($BuildUrls)
+  }
 }
 
 Invoke-Pester

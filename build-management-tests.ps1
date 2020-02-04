@@ -104,6 +104,23 @@ function GivenBuilds {
 
 Describe "Build Management" {
 
+  function GivenServerBuilds([Parameter(Mandatory=$false)][string]$SearchString, [string[]]$BuildUris) {
+    $Value = @()
+    foreach ($BuildUri in $BuildUris) {
+      $Value += @(
+        @{
+          _links = @{
+            self = @{
+              href = $BuildUri
+            }
+          }
+        }
+      )
+    }
+  
+    $MockRestClient.GivenResponseWillBe("$($CollectionUri)$ProjectId/_apis/build/builds?api-version=5.1$SearchString", 'Get', $Token, $null, @{value = $Value })
+  }
+
   BeforeEach {
     $MockRestClient = [MockRestClient]::new()
     [RestClient]::Instance = $MockRestClient
@@ -113,7 +130,7 @@ Describe "Build Management" {
   }
 
   It "can list builds with no filters" {
-    $MockRestClient.GivenResponseWillBe("$($CollectionUri)$ProjectId/_apis/build/builds?api-version=5.1", 'Get', $Token, $null, @{value = GivenBuilds 'x' 'y'})
+    GivenServerBuilds '' @('x', 'y')
 
     $Actual = Get-AzureDevOpsBuilds
 
@@ -122,7 +139,7 @@ Describe "Build Management" {
 
   It "can list builds by definitions" {
     $Defintions = @(1,2,3)
-    $MockRestClient.GivenResponseWillBe("$($CollectionUri)$ProjectId/_apis/build/builds?api-version=5.1&definitions=$Defintions", 'Get', $Token, $null, @{value = GivenBuilds 'a' 'b'})
+    GivenServerBuilds "&definitions=$Defintions" @('a', 'b')
 
     $Actual = Get-AzureDevOpsBuilds -DefinitionIds $Defintions
 
@@ -130,7 +147,7 @@ Describe "Build Management" {
   }
 
   It "can list builds by status" {
-    $MockRestClient.GivenResponseWillBe("$($CollectionUri)$ProjectId/_apis/build/builds?api-version=5.1&statusFilter=completed", 'Get', $Token, $null, @{value = GivenBuilds 'r' 's' 't'})
+    GivenServerBuilds '&statusFilter=completed' @('r', 's', 't')
 
     $Actual = Get-AzureDevOpsBuilds -StatusFilter 'completed'
 
@@ -139,7 +156,7 @@ Describe "Build Management" {
 
   It "can list builds by intersection of status and build definition" {
     $Definitions = @(1,2,3)
-    $MockRestClient.GivenResponseWillBe("$($CollectionUri)$ProjectId/_apis/build/builds?api-version=5.1&definitions=$Definitions&statusFilter=completed", 'Get', $Token, $null, @{value = GivenBuilds 'l'})
+    GivenServerBuilds "&definitions=$Definitions&statusFilter=completed" @('l')
 
     $Actual = Get-AzureDevOpsBuilds -StatusFilter 'completed' -DefinitionIds $Definitions
 
@@ -174,6 +191,7 @@ Describe "Build Management" {
 
     $MockRestClient.ShouldHaveCalled($Url, 'Put', $Token, ($NewDefinition | ConvertTo-Json))
   }
+
 }
 
 Invoke-Pester

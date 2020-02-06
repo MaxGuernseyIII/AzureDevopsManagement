@@ -185,19 +185,14 @@ Describe "Build Management" {
   It "can modify the state of a pipeline queue" {
     $MockRestClient.IsPermissive()
     [string]$DefinitionId = AnyString
-    $Url = "$($CollectionUri)$ProjectId/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
-    $InitialDefinition = @{
-      queueStatus = 'something noisy'
-      otherContent = 'anything else'
-    }
-    $MockRestClient.GivenResponseWillBe($Url, 'Get', $Token, $null, $InitialDefinition)
 
     Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId -NewStatus 'paused'
 
-    $NewDefinition = $InitialDefinition
-    $NewDefinition.queueStatus ='paused'
+    $NewDefinition = @{
+      queueStatus ='paused'
+    }
 
-    $MockRestClient.ShouldHaveCalled($Url, 'Put', $Token, ($NewDefinition | ConvertTo-Json))
+    $MockRestClient.ShouldHaveCalled("$($CollectionUri)$ProjectId/_apis/build/definitions/$($DefinitionId)/?api-version=5.1", 'Patch', $Token, ($NewDefinition | ConvertTo-Json))
   }
 
   It "can eliminate unwanted builds" {

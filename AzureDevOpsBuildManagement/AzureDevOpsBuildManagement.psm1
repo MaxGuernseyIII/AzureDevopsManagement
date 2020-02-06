@@ -102,11 +102,11 @@ function Set-AzureDevOpsPipelineQueueStatus {
   $Token = GetSystemToken
   $Url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
 
-  $Pipeline = AzureDevOpsRestCall -Uri $Url -Method Get -Token $Token
+  $Pipeline = @{
+    queueStatus = $NewStatus
+  }
 
-  $Pipeline.queueStatus = "$NewStatus"
-
-  AzureDevOpsRestCall -Uri $Url -Method Put -Token $Token -Body ($Pipeline | ConvertTo-Json)
+  AzureDevOpsRestCall -Uri $Url -Method 'Patch' -Token $Token -Body ($Pipeline | ConvertTo-Json)
 }
 
 Export-ModuleMember '*-*'

@@ -113,6 +113,13 @@ function Remove-PendingAzureDevOpsBuildsInQueue {
   Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId 'paused'
 }
 
+function Set-AzureDevopsBuildManagementTracing {
+  [CmdletBinding()]
+  param()
+
+  [RestClient]::Trace()
+}
+
 # function Set-AzureDevOpsPipelineQueueStatus {
 #   [CmdletBinding()]
 #   param(

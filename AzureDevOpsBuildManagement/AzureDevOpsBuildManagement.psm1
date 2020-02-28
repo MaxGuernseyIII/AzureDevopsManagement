@@ -50,7 +50,8 @@ function Get-AzureDevOpsBuilds {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$false)][string[]]$DefinitionIds = @(),
-    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][string]$StatusFilter = ''
+    [Parameter(Mandatory=$false)][ValidateSet('none','all','cancelling','completed','inProgress','notStarted','postponed')][string]$StatusFilter = '',
+    [Parameter(Mandatory=$false)][scriptblock]$Transform = ({ "$($_._links.self.href)?api-version=5.1" })
   )
 
   $Token = GetSystemToken
@@ -64,7 +65,7 @@ function Get-AzureDevOpsBuilds {
   }
   $Builds = AzureDevOpsRestCall -Uri $Url -Method Get -Token $Token
 
-  $Builds.value | ForEach-Object { "$($_._links.self.href)?api-version=5.1" }
+  $Builds.value | ForEach-Object $Transform
 }
 
 function Remove-AzureDevOpsBuilds {
@@ -92,22 +93,22 @@ function Remove-PendingAzureDevOpsBuildsInQueue {
   Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId 'paused'
 }
 
-function Set-AzureDevOpsPipelineQueueStatus {
-  [CmdletBinding()]
-  param(
-    [Parameter(Mandatory)][string]$DefinitionId,
-    [Parameter(Mandatory)][ValidateSet('enabled','disabled','paused')][string]$NewStatus
-  )
+# function Set-AzureDevOpsPipelineQueueStatus {
+#   [CmdletBinding()]
+#   param(
+#     [Parameter(Mandatory)][string]$DefinitionId,
+#     [Parameter(Mandatory)][ValidateSet('enabled','disabled','paused')][string]$NewStatus
+#   )
 
-  $Token = GetSystemToken
-  $Url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
+#   $Token = GetSystemToken
+#   $Url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/definitions/$($DefinitionId)/?api-version=5.1"
 
-  $Pipeline = @{
-    queueStatus = $NewStatus
-  }
+#   $Pipeline = @{
+#     queueStatus = $NewStatus
+#   }
 
-  AzureDevOpsRestCall -Uri $Url -Method 'Patch' -Token $Token -Body ($Pipeline | ConvertTo-Json)
-}
+#   AzureDevOpsRestCall -Uri $Url -Method 'Patch' -Token $Token -Body ($Pipeline | ConvertTo-Json)
+# }
 
 Export-ModuleMember '*-*'
 Export-ModuleMember 'RestClient'

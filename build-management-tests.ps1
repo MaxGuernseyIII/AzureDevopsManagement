@@ -182,40 +182,40 @@ Describe "Build Management" {
     ThenServerDeletesHappened($Urls)
   }
 
-  It "can modify the state of a pipeline queue" {
-    $MockRestClient.IsPermissive()
-    [string]$DefinitionId = AnyString
+  # It "can modify the state of a pipeline queue" {
+  #   $MockRestClient.IsPermissive()
+  #   [string]$DefinitionId = AnyString
 
-    Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId -NewStatus 'paused'
+  #   Set-AzureDevOpsPipelineQueueStatus -DefinitionId $DefinitionId -NewStatus 'paused'
 
-    $NewDefinition = @{
-      queueStatus ='paused'
-    }
+  #   $NewDefinition = @{
+  #     queueStatus ='paused'
+  #   }
 
-    $MockRestClient.ShouldHaveCalled("$($CollectionUri)$ProjectId/_apis/build/definitions/$($DefinitionId)/?api-version=5.1", 'Patch', $Token, ($NewDefinition | ConvertTo-Json))
-  }
+  #   $MockRestClient.ShouldHaveCalled("$($CollectionUri)$ProjectId/_apis/build/definitions/$($DefinitionId)/?api-version=5.1", 'Patch', $Token, ($NewDefinition | ConvertTo-Json))
+  # }
 
-  It "can eliminate unwanted builds" {
-    $Global:WasUnpaused = $false
-    $DefinitionId = 33
-    $Definitions = @($DefinitionId)
+  # It "can eliminate unwanted builds" {
+  #   $Global:WasUnpaused = $false
+  #   $DefinitionId = 33
+  #   $Definitions = @($DefinitionId)
 
-    Mock Set-AzureDevOpsPipelineQueueStatus -ParameterFilter { $DefinitionId -eq $DefinitionId -and $NewStatus -eq 'enabled' } { 
-      $MockRestClient.IsRestrictive()
-      $Global:WasUnpaused = $true
-    }
-    Mock Set-AzureDevOpsPipelineQueueStatus -ParameterFilter { ($DefinitionId -eq 33) -and ($NewStatus -eq 'paused') } { 
-      $MockRestClient.IsPermissive()
-    }
+  #   Mock Set-AzureDevOpsPipelineQueueStatus -ParameterFilter { $DefinitionId -eq $DefinitionId -and $NewStatus -eq 'enabled' } { 
+  #     $MockRestClient.IsRestrictive()
+  #     $Global:WasUnpaused = $true
+  #   }
+  #   Mock Set-AzureDevOpsPipelineQueueStatus -ParameterFilter { ($DefinitionId -eq 33) -and ($NewStatus -eq 'paused') } { 
+  #     $MockRestClient.IsPermissive()
+  #   }
 
-    GivenServerBuilds "&definitions=$Definitions&statusFilter=notStarted" @('a', 'b', 'c')
-    $BuildUrls = Get-AzureDevOpsBuilds -DefinitionIds $Definitions -StatusFilter 'notStarted'
+  #   GivenServerBuilds "&definitions=$Definitions&statusFilter=notStarted" @('a', 'b', 'c')
+  #   $BuildUrls = Get-AzureDevOpsBuilds -DefinitionIds $Definitions -StatusFilter 'notStarted'
 
-    Remove-PendingAzureDevOpsBuildsInQueue -DefinitionId $DefinitionId
+  #   Remove-PendingAzureDevOpsBuildsInQueue -DefinitionId $DefinitionId
 
-    $Global:WasUnpaused | Should Be $true
-    ThenServerDeletesHappened($BuildUrls)
-  }
+  #   $Global:WasUnpaused | Should Be $true
+  #   ThenServerDeletesHappened($BuildUrls)
+  # }
 }
 
 Invoke-Pester

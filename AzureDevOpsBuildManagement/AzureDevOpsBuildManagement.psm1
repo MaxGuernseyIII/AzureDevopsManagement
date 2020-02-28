@@ -12,6 +12,10 @@ class RestClient {
   [object]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
     throw("abstract method")
   }
+
+  static [void]Trace() {
+    [RestClient]::Instance = [TraceRestClient]::new([RestClient]::GetInstance())
+  }
 }
 
 class HttpRestClient : RestClient {
@@ -26,6 +30,22 @@ class HttpRestClient : RestClient {
     } else {
       return Invoke-RestMethod -Uri $Uri -Method $Method -Headers $Headers
     }
+  }
+}
+
+class TraceRestClient : RestClient {
+  hidden [RestClient]$Underlying
+
+  TraceRestClient([restclient]$Underlying) {
+    $this.Underlying = $Underlying
+  }
+
+  [object]Invoke([string]$Uri, [string]$Method, [string]$Token, [string]$Body = '') {
+    Write-Host "$Method '$Body' to $Uri with token $Token"
+    $Response = $this.Underlying.Invoke($Uri, $Method, $Token, $Body)
+    Write-Host "Response = $Response"
+
+    return $Response
   }
 }
 

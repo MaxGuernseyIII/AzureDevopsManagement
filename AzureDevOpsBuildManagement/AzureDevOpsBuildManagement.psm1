@@ -66,6 +66,10 @@ function AzureDevOpsRestCall {
   [RestClient]::GetInstance().Invoke($Uri, $Method, $Token, $Body)
 }
 
+function AzureDevOpsCollectionRoot {
+  return "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis"
+}
+
 function Get-AzureDevOpsBuilds {
   [CmdletBinding()]
   param (
@@ -75,8 +79,9 @@ function Get-AzureDevOpsBuilds {
   )
 
   $Token = GetSystemToken
+  $Root = AzureDevOpsCollectionRoot
 
-  $Url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/build/builds?api-version=5.1"
+  $Url = "$Root/build/builds?api-version=5.1"
   if ($DefinitionIds -ne 0) {
     $Url = "$Url&definitions=$DefinitionIds"
   }
@@ -99,6 +104,21 @@ function Remove-AzureDevOpsBuilds {
 
     AzureDevOpsRestCall -Uri $BuildUrl -Method Delete -Token $Token
   }
+}
+
+function Set-AzureDevopsBuildStatus {
+  [CmdletBinding()]
+  param(
+    [string]$BuildId,
+    [string]$NewStatus
+  )
+
+  $Token = GetSystemToken
+  $Root = AzureDevOpsCollectionRoot
+  $Uri = "$Root/build/builds/$BuildId?api-version=5.1"
+  $Body = @{status=$NewStatus} | ConvertTo-Json
+
+  AzureDevOpsRestCall -Uri $Uri -Method PATCH -Token $Token -Body $Body
 }
 
 function Remove-PendingAzureDevOpsBuildsInQueue {

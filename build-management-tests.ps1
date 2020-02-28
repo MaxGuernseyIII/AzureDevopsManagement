@@ -182,6 +182,16 @@ Describe "Build Management" {
     ThenServerDeletesHappened($Urls)
   }
 
+  It "can cancel a running build" {
+    $MockRestClient.IsPermissive()
+    $BuildId = 413
+    $Status = 'Cancelling'
+
+    Set-AzureDevopsBuildStatus $BuildId $Status
+
+    $MockRestClient.ShouldHaveCalled("$($CollectionUri)$ProjectId/_apis/build/builds/$BuildId?api-version=5.1", "PATCH", $Token, (@{status=$Status} | ConvertTo-Json))
+  }
+
   # It "can modify the state of a pipeline queue" {
   #   $MockRestClient.IsPermissive()
   #   [string]$DefinitionId = AnyString

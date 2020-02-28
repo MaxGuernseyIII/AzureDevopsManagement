@@ -189,7 +189,9 @@ Describe "Build Management" {
 
     Set-AzureDevopsBuildStatus $BuildId $Status
 
-    $MockRestClient.ShouldHaveCalled("$($CollectionUri)$ProjectId/_apis/build/builds/$BuildId?api-version=5.1", "PATCH", $Token, (@{status=$Status} | ConvertTo-Json))
+    $Uri = "$($CollectionUri)$ProjectId/_apis/build/builds/$BuildId" + "?api-version=5.1"
+    $Uri -match '\?' | Should Be $true
+    $MockRestClient.ShouldHaveCalled("$($CollectionUri)$ProjectId/_apis/build/builds/$BuildId" + "?api-version=5.1", "PATCH", $Token, (@{status=$Status} | ConvertTo-Json))
   }
 
   # It "can modify the state of a pipeline queue" {

@@ -115,7 +115,7 @@ function Set-AzureDevopsBuildStatus {
 
   $Token = GetSystemToken
   $Root = AzureDevOpsCollectionRoot
-  $Uri = "$Root/build/builds/$BuildId?api-version=5.1"
+  $Uri = "$Root/build/builds/$BuildId" + "?api-version=5.1"
   $Body = @{status=$NewStatus} | ConvertTo-Json
 
   AzureDevOpsRestCall -Uri $Uri -Method PATCH -Token $Token -Body $Body
